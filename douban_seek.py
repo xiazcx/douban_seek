@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
+
 """
-mps.
+douban_seek
 
 https://github.com/xiazcx/douban_seek
 
@@ -44,8 +45,36 @@ import re
 import os
 
 
+def open_group():
+	cnt = 0
+	while(cnt < 3):
+		group_id = raw_input("Please specify the group name or id your want to seek:")
+		group_members_url ="http://www.douban.com/group/" + group_id +"/members"
+		url_buffer = urllib.urlopen(group_members_url).read()
+		title_content = re.search(r'<title>([\s\S]*)</title>', url_buffer)
+		if title_content:
+			if(title_content.group(1) == "页面不存在"):
+				print "Group name or id not valid"
+				cnt +=1
+				continue
+			else:
+				print "Enter the group - " + group_id
+				break
+		else:
+			print "Group name or id not valid"
+			cnt +=1
+			continue
+		
+		if(cnt == 3):
+			return 1
+		else:
+			return 0
+
+
+
 def main():
 	print "Start to seek your friends!"
+	open_group()
 
 main()
 
