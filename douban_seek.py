@@ -85,7 +85,7 @@ def seek_group():
 		member_page = 'http://www.douban.com/group/people/' + member_id.group(1) + '/'
 		member_buffer = urllib.urlopen(member_page).read()
 		common_like_num = re.search(r'我和.*共同的喜好(\d)', member_buffer)
-		#print common_like_num
+		# print common_like_num """
 	
 
 
