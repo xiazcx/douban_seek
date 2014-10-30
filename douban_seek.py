@@ -44,37 +44,58 @@ import sys
 import re
 import os
 
+ERROR_RETURN = False
+SUCCESS_RETURN = True
+MAX_TRY_TIME = 3
+url_group_buffer = ""
 
 def open_group():
-	cnt = 0
-	while(cnt < 3):
+	global url_group_buffer
+	try_cnt = 0
+	while(try_cnt < MAX_TRY_TIME):
 		group_id = raw_input("Please specify the group name or id your want to seek:")
 		group_members_url ="http://www.douban.com/group/" + group_id +"/members"
-		url_buffer = urllib.urlopen(group_members_url).read()
-		title_content = re.search(r'<title>([\s\S]*)</title>', url_buffer)
+		url_group_buffer = urllib.urlopen(group_members_url).read()
+		title_content = re.search(r'<title>([\s\S]*)</title>', url_group_buffer)
 		if title_content:
 			if(title_content.group(1) == "页面不存在"):
 				print "Group name or id not valid"
-				cnt +=1
+				try_cnt +=1
 				continue
 			else:
 				print "Enter the group - " + group_id
 				break
 		else:
 			print "Group name or id not valid"
-			cnt +=1
+			try_cnt +=1
 			continue
 		
-		if(cnt == 3):
-			return 1
+		if(try_cnt == MAX_TRY_TIME):
+			return ERROR_RETURN
 		else:
-			return 0
+			return SUCCESS_RETURN 
 
+
+
+def seek_group():
+	global url_group_buffer
+	member_content = re.findall(r'<a href="(.*)" class="nbg">',url_group_buffer)
+	for member in member_content:
+		member_id = re.search( r'http://www.douban.com/group/people/(.*)/',member)
+		member_page = 'http://www.douban.com/group/people/' + member_id.group(1) + '/'
+		member_buffer = urllib.urlopen(member_page).read()
+		common_like_num = re.search(r'我和.*共同的喜好(\d)', member_buffer)
+		#print common_like_num
+	
 
 
 def main():
 	print "Start to seek your friends!"
-	open_group()
+	if (open_group() == ERROR_RETURN):
+		print "Open group failed, exit program"
+	else:
+		print "Start to seek the group"
+		seek_group()
 
 main()
 
