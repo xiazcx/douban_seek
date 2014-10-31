@@ -29,6 +29,7 @@ __version__ = "0.20.16"
 __author__ = "nagev"
 __license__ = "GPLv3"
 
+import cookielib
 import urllib
 import urllib2
 import logging
@@ -48,6 +49,25 @@ ERROR_RETURN = False
 SUCCESS_RETURN = True
 MAX_TRY_TIME = 3
 url_group_buffer = ""
+douban_cookie = cookielib.CookieJar()
+douban_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(douban_cookie))
+
+douban_params = {
+    "form_email":"707922063@qq.com",
+    "form_password":"*********",
+    "source":"index_nav"
+}
+
+
+def login_douban():
+	print "First, please Login to douban"
+	url_login = 'http://www.douban.com/accounts/login'
+	response_login = douban_opener.open(url_login,urllib.urlencode(douban_params))
+	if (response_login.geturl() == "http://www.douban.com/"):
+		print "Login Success!"
+	else:
+		print response_login.read() 
+	
 
 def open_group():
 	global url_group_buffer
@@ -79,22 +99,26 @@ def open_group():
 
 def seek_group():
 	global url_group_buffer
+	global douban_cookie
 	member_content = re.findall(r'<a href="(.*)" class="nbg">',url_group_buffer)
 	for member in member_content:
 		member_id = re.search( r'http://www.douban.com/group/people/(.*)/',member)
 		member_page = 'http://www.douban.com/group/people/' + member_id.group(1) + '/'
-		member_buffer = urllib.urlopen(member_page).read()
+		#member_buffer = urllib.urlopen(member_page).read()
+		member_buffer = douban_opener.open(member_page,urllib.urlencode(douban_params)).read()
+		
 		common_like_num = re.search(r'我和.*共同的喜好(\d)', member_buffer)
-		# print common_like_num 
+		print common_like_num 
 	
 
 
 def main():
 	print "Start to seek your friends!"
+	login_douban()
 	if (open_group() == ERROR_RETURN):
 		print "Open group failed, exit program"
 	else:
-		print "Start to seek the group"
+		print "Start to from the group..."
 		seek_group()
 
 main()
