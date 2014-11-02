@@ -53,8 +53,8 @@ douban_cookie = cookielib.CookieJar()
 douban_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(douban_cookie))
 
 douban_params = {
-    "form_email":"707922063@qq.com",
-    "form_password":"*********",
+    "form_email":"xiazcx1986@126.com",
+    "form_password":"******",
     "source":"index_nav"
 }
 
@@ -66,7 +66,32 @@ def login_douban():
 	if (response_login.geturl() == "http://www.douban.com/"):
 		print "Login Success!"
 	else:
-		print response_login.read() 
+		html=response_login.read()
+		imgurl=re.search('<img id="captcha_image" src="(.+?)" alt="captcha" class="captcha_image"/>', html)
+		if imgurl:
+			url=imgurl.group(1)
+			res=urllib.urlretrieve(url, 'v.jpg')
+			captcha=re.search('<input type="hidden" name="captcha-id" value="(.+?)"/>' ,html)
+			if captcha:
+				vcode=raw_input("Input Captcha:")
+				douban_params["captcha-solution"] = vcode
+				douban_params["captcha-id"] = captcha.group(1)
+				douban_params["user_login"] = "登录"
+				response_login = douban_opener.open(url_login,urllib.urlencode(douban_params))
+				if (response_login.geturl() == "http://www.douban.com/"):
+					print "Login Success!"
+					xiaoyu_page = 'http://www.douban.com/people/croath/'
+					#member_buffer = urllib.urlopen(member_page).read()
+					member_buffer = douban_opener.open(xiaoyu_page).read()
+					#urllib.urlretrieve(member_buffer, 'v.html')
+					common_like_num = re.search(r'我和.*共同的喜好((.*))', member_buffer)
+					print common_like_num.group(1) 
+
+
+				else:
+					print "Login Failed!"
+				
+
 	
 
 def open_group():
