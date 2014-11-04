@@ -6,7 +6,7 @@ douban_seek
 
 https://github.com/xiazcx/douban_seek
 
-Copyright (C)  2014 nagev
+Copyright (C)  2014 xiazcx
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ import cookielib
 import urllib
 import urllib2
 import logging
+import getpass 
 import hashlib
 import difflib
 import random
@@ -53,57 +54,65 @@ douban_cookie = cookielib.CookieJar()
 douban_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(douban_cookie))
 
 douban_params = {
-    "form_email":"xiazcx1986@126.com",
+    "form_email":"xx@xx.com",
     "form_password":"******",
     "source":"index_nav"
 }
 
 
 def login_douban():
-	print "First, please Login to douban"
 	url_login = 'http://www.douban.com/accounts/login'
-	response_login = douban_opener.open(url_login,urllib.urlencode(douban_params))
-	if (response_login.geturl() == "http://www.douban.com/"):
-		print "Login Success!"
+	email_login= raw_input("Please input your login email:")
+
+	if re.match("\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*", email_login) == None:
+		print "Email not valid"
+		return ERROR_RETURN
 	else:
-		html=response_login.read()
-		imgurl=re.search('<img id="captcha_image" src="(.+?)" alt="captcha" class="captcha_image"/>', html)
-		if imgurl:
-			url=imgurl.group(1)
-			res=urllib.urlretrieve(url, 'v.jpg')
-			captcha=re.search('<input type="hidden" name="captcha-id" value="(.+?)"/>' ,html)
-			if captcha:
-				vcode=raw_input("Input Captcha:")
-				douban_params["captcha-solution"] = vcode
-				douban_params["captcha-id"] = captcha.group(1)
-				douban_params["user_login"] = "登录"
-				response_login = douban_opener.open(url_login,urllib.urlencode(douban_params))
-				if (response_login.geturl() == "http://www.douban.com/"):
-					print "Login Success!"
-					xiaoyu_page = 'http://www.douban.com/people/croath/'
-					#member_buffer = urllib.urlopen(member_page).read()
-					member_buffer = douban_opener.open(xiaoyu_page).read()
-					#urllib.urlretrieve(member_buffer, 'v.html')
-					common_like_num = re.search(r'我和.*共同的喜好((.*))', member_buffer)
-					print common_like_num.group(1) 
+		douban_params["form_email"] = email_login
+		psw_login = getpass.getpass("Please input your login password:")  
+		douban_params["form_password"] = psw_login
+		response_login = douban_opener.open(url_login,urllib.urlencode(douban_params))
 
+		if(response_login.geturl() == "http://www.douban.com/"):
+				return SUCCESS_RETURN
+		else:
+			html_login = response_login.read()
+			imgurl_login = re.search('<img id="captcha_image" src="(.+?)" alt="captcha" class="captcha_image"/>', html_login)
 
+			if imgurl_login:
+				url_captcha = imgurl_login.group(1)
+				res_captcha = urllib.urlretrieve(url_captcha, 'captcha.jpg')
+				img_captcha = re.search('<input type="hidden" name="captcha-id" value="(.+?)"/>' ,html_login)
+
+				if img_captcha:
+					vcode_login =raw_input("Check image <captcha.jpg> at local directory and input captcha:")
+					douban_params["captcha-solution"] = vcode_login
+					douban_params["captcha-id"] = img_captcha.group(1)
+					douban_params["user_login"] = "登录"
+					response_login = douban_opener.open(url_login,urllib.urlencode(douban_params))
+
+					if (response_login.geturl() == "http://www.douban.com/"):
+						return SUCCESS_RETURN
+					else:
+						return ERROR_RETURN
 				else:
-					print "Login Failed!"
-				
+					return ERROR_RETURN
+			else:
+				return ERROR_RETURN
 
 	
 
 def open_group():
 	global url_group_buffer
 	try_cnt = 0
+
 	while(try_cnt < MAX_TRY_TIME):
 		group_id = raw_input("Please specify the group name or id your want to seek:")
 		group_members_url ="http://www.douban.com/group/" + group_id +"/members"
 		url_group_buffer = urllib.urlopen(group_members_url).read()
 		title_content = re.search(r'<title>([\s\S]*)</title>', url_group_buffer)
 		if title_content:
-			if(title_content.group(1) == "页面不存在"):
+			if(title_content.group(1) == "页面不存在"):			
 				print "Group name or id not valid"
 				try_cnt +=1
 				continue
@@ -124,27 +133,39 @@ def open_group():
 
 def seek_group():
 	global url_group_buffer
-	global douban_cookie
+	
+	# for test
+	#xiaoyu_page = 'http://www.douban.com/people/croath/'
+	#member_buffer = douban_opener.open(xiaoyu_page).read()
+	#common_like_num = re.search(r'我和.*共同的喜好\((\d)\)', member_buffer)
+	#print common_like_num.group(1)
+
 	member_content = re.findall(r'<a href="(.*)" class="nbg">',url_group_buffer)
+
 	for member in member_content:
 		member_id = re.search( r'http://www.douban.com/group/people/(.*)/',member)
-		member_page = 'http://www.douban.com/group/people/' + member_id.group(1) + '/'
-		#member_buffer = urllib.urlopen(member_page).read()
-		member_buffer = douban_opener.open(member_page,urllib.urlencode(douban_params)).read()
+		member_page = 'http://www.douban.com/people/' + member_id.group(1) + '/'
+		member_buffer = douban_opener.open(member_page).read()
 		
-		common_like_num = re.search(r'我和.*共同的喜好(\d)', member_buffer)
-		print common_like_num 
+		common_like_num = re.search(r'我和.*共同的喜好\((.*)\)', member_buffer)
+		if common_like_num:
+			 print common_like_num.group(1)
 	
 
 
 def main():
 	print "Start to seek your friends!"
-	login_douban()
-	if (open_group() == ERROR_RETURN):
-		print "Open group failed, exit program"
+	if( login_douban() == ERROR_RETURN):
+		print "Login Failed! exit program"
+		return ERROR_RETURN
 	else:
-		print "Start to from the group..."
-		seek_group()
+		print "Login Success!"
+		if (open_group() == ERROR_RETURN):
+			print "Open group failed, exit program"
+			return ERROR_RETURN
+		else:
+			print "Start seek from the group..."
+			seek_group()
 
 main()
 
