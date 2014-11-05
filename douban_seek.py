@@ -46,8 +46,8 @@ douban_params = {
 
 class user_info(object):
 	USER_ID = 0
-	COMMON_RESULT = 0
 	DOUBAN_ID = ""
+	COMMON_RESULT = 0
 	COMMON_STRING = ""
 
 
@@ -134,7 +134,7 @@ def open_group():
 
 def seek_group():
 	global url_group_buffer
-	global list_friend	
+	global list_found_user	
 	id_cnt = 0
 	member_content = re.findall(r'<a href="(.*)" class="nbg">',url_group_buffer)
 
