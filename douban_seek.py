@@ -2,7 +2,7 @@
 # coding: utf-8
 
 """
-douban_seek
+douban_seek: contact branch
 
 https://github.com/xiazcx/douban_seek
 
