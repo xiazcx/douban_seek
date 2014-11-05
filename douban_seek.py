@@ -34,30 +34,31 @@ import urllib
 import urllib2
 import logging
 import getpass 
-import hashlib
-import difflib
-import random
-import socket
-import zlib
-import time
-import math
-import json
 import sys
 import re
 import os
-
-ERROR_RETURN = False
-SUCCESS_RETURN = True
-MAX_TRY_TIME = 3
-url_group_buffer = ""
-douban_cookie = cookielib.CookieJar()
-douban_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(douban_cookie))
 
 douban_params = {
     "form_email":"xx@xx.com",
     "form_password":"******",
     "source":"index_nav"
 }
+
+class user_info(object):
+	USER_ID = 0
+	COMMON_RESULT = 0
+	DOUBAN_ID = ""
+	COMMON_STRING = ""
+
+
+ERROR_RETURN = False
+SUCCESS_RETURN = True
+MAX_TRY_TIME = 3
+
+url_group_buffer = ""
+list_found_user = []
+douban_cookie = cookielib.CookieJar()
+douban_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(douban_cookie))
 
 
 def login_douban():
@@ -133,13 +134,8 @@ def open_group():
 
 def seek_group():
 	global url_group_buffer
-	
-	# for test
-	#xiaoyu_page = 'http://www.douban.com/people/croath/'
-	#member_buffer = douban_opener.open(xiaoyu_page).read()
-	#common_like_num = re.search(r'我和.*共同的喜好\((\d)\)', member_buffer)
-	#print common_like_num.group(1)
-
+	global list_friend	
+	id_cnt = 0
 	member_content = re.findall(r'<a href="(.*)" class="nbg">',url_group_buffer)
 
 	for member in member_content:
@@ -147,11 +143,16 @@ def seek_group():
 		member_page = 'http://www.douban.com/people/' + member_id.group(1) + '/'
 		member_buffer = douban_opener.open(member_page).read()
 		
-		common_like_num = re.search(r'我和.*共同的喜好\((.*)\)', member_buffer)
-		if common_like_num:
-			 print common_like_num.group(1)
-	
-
+		common_like = re.search(r'我和.*共同的喜好\((\d*)\)', member_buffer)
+		if common_like:
+			print common_like.group(0)
+			found_member = user_info()
+			found_member.USER_ID = id_cnt
+			found_member.COMMON_RESULT = common_like.group(1)	
+			found_member.DOUBAN_ID = member_page 
+			found_member.COMMON_STRING = common_like.group(0) 
+			list_found_user.append(found_member)	
+			id_cnt += 1
 
 def main():
 	print "Start to seek your friends!"
@@ -166,6 +167,8 @@ def main():
 		else:
 			print "Start seek from the group..."
 			seek_group()
+			for user in list_found_user:
+				print (user.DOUBAN_ID) + (" --> ") + (user.COMMON_RESULT)
 
 main()
 
