@@ -148,11 +148,27 @@ def seek_group():
 			print common_like.group(0)
 			found_member = user_info()
 			found_member.USER_ID = id_cnt
-			found_member.COMMON_RESULT = common_like.group(1)	
+			found_member.COMMON_RESULT = int(common_like.group(1))	
 			found_member.DOUBAN_ID = member_page 
 			found_member.COMMON_STRING = common_like.group(0) 
 			list_found_user.append(found_member)	
 			id_cnt += 1
+
+	if id_cnt != 0:
+		return SUCCESS_RETURN
+	else:
+		return ERROR_RETURN
+	
+
+def sortsave_result():
+	global list_found_user	
+	list_found_user.sort(key = lambda user_info:user_info.COMMON_RESULT,reverse = True)
+	friend_list = open("friend_list.txt","w")
+	for user in list_found_user:
+		friend_list.write( user.COMMON_STRING +(" --> ") + user.DOUBAN_ID + "\n" )
+	friend_list.close()
+	return SUCCESS_RETURN 
+	
 
 def main():
 	print "Start to seek your friends!"
@@ -166,9 +182,16 @@ def main():
 			return ERROR_RETURN
 		else:
 			print "Start seek from the group..."
-			seek_group()
-			for user in list_found_user:
-				print (user.DOUBAN_ID) + (" --> ") + (user.COMMON_RESULT)
+			if(seek_group() == ERROR_RETURN):
+				print "Cannot find friends in this group, exit program"
+				return ERROR_RETURN
+			else:
+				if( sortsave_result() == SUCCESS_RETURN):
+					print "Seek complete, please check <friend_list.txt<> at local directory"
+					return SUCCESS_RETURN
+				else:
+					print "Save result failed, exit program"
+					return ERROR_RETURN
 
 main()
 
