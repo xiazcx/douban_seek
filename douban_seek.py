@@ -54,8 +54,10 @@ class user_info(object):
 ERROR_RETURN = False
 SUCCESS_RETURN = True
 MAX_TRY_TIME = 3
+MEMBERS_PAGE_CNT = 35
 
 url_group_buffer = ""
+group_members_url = ""
 list_found_user = []
 douban_cookie = cookielib.CookieJar()
 douban_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(douban_cookie))
@@ -105,6 +107,7 @@ def login_douban():
 
 def open_group():
 	global url_group_buffer
+	global group_members_url
 	try_cnt = 0
 
 	while(try_cnt < MAX_TRY_TIME):
@@ -135,24 +138,53 @@ def open_group():
 def seek_group():
 	global url_group_buffer
 	global list_found_user	
+	global group_members_url
+	try_cnt = 0
+	page_cnt = 0
 	id_cnt = 0
-	member_content = re.findall(r'<a href="(.*)" class="nbg">',url_group_buffer)
 
-	for member in member_content:
-		member_id = re.search( r'http://www.douban.com/group/people/(.*)/',member)
-		member_page = 'http://www.douban.com/people/' + member_id.group(1) + '/'
-		member_buffer = douban_opener.open(member_page).read()
+	total_members_str = re.search(r'<span class="count">\(共(\d*)人\)</span>', url_group_buffer)
+	if total_members_str:
+		total_members = int(total_members_str.group(1))
+		if total_members == 0:
+			return ERROR_RETURN
+	else:
+		return ERROR_RETURN
+
+	while(try_cnt < MAX_TRY_TIME):
+		total_seek_page = int(raw_input("Please input the total pages you want to seek from this group:"))
+		if (total_seek_page * MEMBERS_PAGE_CNT > total_members + MEMBERS_PAGE_CNT):
+			print "Page number exceed the group max"
+			try_cnt +=1
+			continue
+		else:
+			break
+
+	if(try_cnt == MAX_TRY_TIME):
+		return ERROR_RETURN
+
+	while(page_cnt < total_seek_page):
+		temp_group_members_url = group_members_url + "?start=" + str(page_cnt * MEMBERS_PAGE_CNT)		
+		temp_url_group_buffer = urllib.urlopen(temp_group_members_url).read()
+		member_content = re.findall(r'<a href="(.*)" class="nbg">',temp_url_group_buffer)
+
+		for member in member_content:
+			member_id = re.search( r'http://www.douban.com/group/people/(.*)/',member)
+			member_page = 'http://www.douban.com/people/' + member_id.group(1) + '/'
+			member_buffer = douban_opener.open(member_page).read()
 		
-		common_like = re.search(r'我和.*共同的喜好\((\d*)\)', member_buffer)
-		if common_like:
-			print common_like.group(0)
-			found_member = user_info()
-			found_member.USER_ID = id_cnt
-			found_member.COMMON_RESULT = int(common_like.group(1))	
-			found_member.DOUBAN_ID = member_page 
-			found_member.COMMON_STRING = common_like.group(0) 
-			list_found_user.append(found_member)	
-			id_cnt += 1
+			common_like = re.search(r'我和.*共同的喜好\((\d*)\)', member_buffer)
+			if common_like:
+				print common_like.group(0)
+				found_member = user_info()
+				found_member.USER_ID = id_cnt
+				found_member.COMMON_RESULT = int(common_like.group(1))	
+				found_member.DOUBAN_ID = member_page 
+				found_member.COMMON_STRING = common_like.group(0) 
+				list_found_user.append(found_member)	
+				id_cnt += 1
+
+		page_cnt += 1
 
 	if id_cnt != 0:
 		return SUCCESS_RETURN
