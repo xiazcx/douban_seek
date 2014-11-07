@@ -24,16 +24,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
+from __future__ import print_function
 
 __version__ = "0.20.16"
 __author__ = "nagev"
 __license__ = "GPLv3"
 
+import __main__
 import cookielib
 import urllib
 import urllib2
 import logging
 import getpass 
+import time
 import sys
 import re
 import os
@@ -68,7 +71,7 @@ def login_douban():
 	email_login= raw_input("Please input your login email:")
 
 	if re.match("\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*", email_login) == None:
-		print "Email not valid"
+		print ("Email not valid")
 		return ERROR_RETURN
 	else:
 		douban_params["form_email"] = email_login
@@ -117,14 +120,14 @@ def open_group():
 		title_content = re.search(r'<title>([\s\S]*)</title>', url_group_buffer)
 		if title_content:
 			if(title_content.group(1) == "页面不存在"):			
-				print "Group name or id not valid"
+				print ("Group name or id not valid")
 				try_cnt +=1
 				continue
 			else:
-				print "Enter the group - " + group_id
+				print ("Enter the group - " + group_id)
 				break
 		else:
-			print "Group name or id not valid"
+			print ("Group name or id not valid")
 			try_cnt +=1
 			continue
 		
@@ -154,10 +157,11 @@ def seek_group():
 	while(try_cnt < MAX_TRY_TIME):
 		total_seek_page = int(raw_input("Please input the total pages you want to seek from this group:"))
 		if (total_seek_page * MEMBERS_PAGE_CNT > total_members + MEMBERS_PAGE_CNT):
-			print "Page number exceed the group max"
+			print ("Page number exceed the group max")
 			try_cnt +=1
 			continue
 		else:
+			print ("Start seek from the group...")
 			break
 
 	if(try_cnt == MAX_TRY_TIME):
@@ -172,10 +176,11 @@ def seek_group():
 			member_id = re.search( r'http://www.douban.com/group/people/(.*)/',member)
 			member_page = 'http://www.douban.com/people/' + member_id.group(1) + '/'
 			member_buffer = douban_opener.open(member_page).read()
-		
+			time.sleep(1)
 			common_like = re.search(r'我和.*共同的喜好\((\d*)\)', member_buffer)
+			
 			if common_like:
-				print common_like.group(0)
+				print (common_like.group(0))
 				found_member = user_info()
 				found_member.USER_ID = id_cnt
 				found_member.COMMON_RESULT = int(common_like.group(1))	
@@ -203,27 +208,27 @@ def sortsave_result():
 	
 
 def main():
-	print "Start to seek your friends!"
+	print ("Start to seek your friends!")
 	if( login_douban() == ERROR_RETURN):
-		print "Login Failed! exit program"
+		print ("Login Failed! exit program")
 		return ERROR_RETURN
 	else:
-		print "Login Success!"
+		print ("Login Success!")
 		if (open_group() == ERROR_RETURN):
-			print "Open group failed, exit program"
+			print ("Open group failed, exit program")
 			return ERROR_RETURN
 		else:
-			print "Start seek from the group..."
 			if(seek_group() == ERROR_RETURN):
-				print "Cannot find friends in this group, exit program"
+				print ("Cannot find friends in this group, exit program")
 				return ERROR_RETURN
 			else:
 				if( sortsave_result() == SUCCESS_RETURN):
-					print "Seek complete, please check <friend_list.txt<> at local directory"
+					print ("Seek complete, please check <friend_list.txt<> at local directory")
 					return SUCCESS_RETURN
 				else:
-					print "Save result failed, exit program"
+					print ("Save result failed, exit program")
 					return ERROR_RETURN
 
-main()
+if __name__ == "__main__":
+	main()
 
