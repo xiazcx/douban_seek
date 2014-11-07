@@ -5,16 +5,15 @@ Douban_Seek is a Python Script used to seek the douban users who have
 common-like items with you form the douban groups.
 
 
-current features:
+Current Features
 ---------------
   - Multi pages supported
 
   
-
 How to Use
 ---------------
 
-1. Download this Python code in any way
+1. Download this Python code in any way.
 
 2. Run in console:
 	python douban_seek.py
@@ -30,7 +29,7 @@ step2;
 
 4. Specify the douban group id you want to seek, like this group (Ubuntu):
 "http://www.douban.com/group/ubuntu/", please input "ubuntu" 
-(the string behind "...group/")
+(the string behind "...group/").
 
 5. Input the page number of members you want to seek, each page 
 contains 35 users; Please check the total pages first, make sure 
