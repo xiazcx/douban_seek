@@ -24,34 +24,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
+from __future__ import print_function
 
 __version__ = "0.20.16"
 __author__ = "nagev"
 __license__ = "GPLv3"
 
+import __main__
 import cookielib
 import urllib
 import urllib2
 import logging
 import getpass 
-import hashlib
-import difflib
-import random
-import socket
-import zlib
 import time
-import math
-import json
 import sys
 import re
 import os
-
-ERROR_RETURN = False
-SUCCESS_RETURN = True
-MAX_TRY_TIME = 3
-url_group_buffer = ""
-douban_cookie = cookielib.CookieJar()
-douban_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(douban_cookie))
 
 douban_params = {
     "form_email":"xx@xx.com",
@@ -59,13 +47,29 @@ douban_params = {
     "source":"index_nav"
 }
 
+class user_info(object):
+	USER_ID = 0
+	DOUBAN_ID = ""
+	COMMON_RESULT = 0
+	COMMON_STRING = ""
+
+
+ERROR_RETURN = False
+SUCCESS_RETURN = True
+MEMBERS_PAGE_CNT = 20
+contact_page_number = 0
+
+list_contact_user = []
+douban_cookie = cookielib.CookieJar()
+douban_opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(douban_cookie))
+
 
 def login_douban():
 	url_login = 'http://www.douban.com/accounts/login'
 	email_login= raw_input("Please input your login email:")
 
 	if re.match("\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*", email_login) == None:
-		print "Email not valid"
+		print ("Email not valid")
 		return ERROR_RETURN
 	else:
 		douban_params["form_email"] = email_login
@@ -85,7 +89,7 @@ def login_douban():
 				img_captcha = re.search('<input type="hidden" name="captcha-id" value="(.+?)"/>' ,html_login)
 
 				if img_captcha:
-					vcode_login =raw_input("Check image <captcha.jpg> at local directory and input captcha:")
+					vcode_login =raw_input("Check image <captcha.jpg> at local directory and input:")
 					douban_params["captcha-solution"] = vcode_login
 					douban_params["captcha-id"] = img_captcha.group(1)
 					douban_params["user_login"] = "登录"
@@ -102,70 +106,86 @@ def login_douban():
 
 	
 
-def open_group():
-	global url_group_buffer
-	try_cnt = 0
+def open_contact():
+	global contact_page_number
+	contact_contacts_url = "http://www.douban.com/contacts/list"
+	url_contact_buffer = douban_opener.open(contact_contacts_url).read()
+	contact_page_str = re.search(r'<span class="thispage" data-total-page="(\d)*"', url_contact_buffer)
+	if contact_page_str:
+		contact_page_number = int(contact_page_str.group(1))
+	else:
+		contact_page_number = 1
+	return SUCCESS_RETURN
+			
 
-	while(try_cnt < MAX_TRY_TIME):
-		group_id = raw_input("Please specify the group name or id your want to seek:")
-		group_members_url ="http://www.douban.com/group/" + group_id +"/members"
-		url_group_buffer = urllib.urlopen(group_members_url).read()
-		title_content = re.search(r'<title>([\s\S]*)</title>', url_group_buffer)
-		if title_content:
-			if(title_content.group(1) == "页面不存在"):			
-				print "Group name or id not valid"
-				try_cnt +=1
-				continue
-			else:
-				print "Enter the group - " + group_id
-				break
-		else:
-			print "Group name or id not valid"
-			try_cnt +=1
-			continue
-		
-		if(try_cnt == MAX_TRY_TIME):
-			return ERROR_RETURN
-		else:
-			return SUCCESS_RETURN 
-
-
-
-def seek_group():
-	global url_group_buffer
+def seek_contact():
+	global contact_page_number
+	page_cnt = 0
+	id_cnt = 0
 	
-	# for test
-	#xiaoyu_page = 'http://www.douban.com/people/croath/'
-	#member_buffer = douban_opener.open(xiaoyu_page).read()
-	#common_like_num = re.search(r'我和.*共同的喜好\((\d)\)', member_buffer)
-	#print common_like_num.group(1)
+	print ("Start to counting...")
+	while(page_cnt < contact_page_number):
+		temp_contact_url = "http://www.douban.com/contacts/list?tag=0&start=" + str(page_cnt * MEMBERS_PAGE_CNT)		
+		temp_contact_buffer = douban_opener.open(temp_contact_url).read()
+		contact_content = re.findall(r'<a href="http://www.douban.com/people/(.*)/" title=".*">.*</a>',temp_contact_buffer)
 
-	member_content = re.findall(r'<a href="(.*)" class="nbg">',url_group_buffer)
+		if contact_content:
+			for contact in contact_content:
+				contact_page_url = "http://www.douban.com/people/" + str(contact) + "/"
+				contact_buffer = douban_opener.open(contact_page_url).read()
+				time.sleep(1)
+				common_like = re.search(r'我和.*共同的喜好\((\d*)\)', contact_buffer)
+			
+				if common_like:
+					print (common_like.group(0))
+					found_contact = user_info()
+					found_contact.USER_ID = id_cnt
+					found_contact.COMMON_RESULT = int(common_like.group(1))	
+					found_contact.DOUBAN_ID = contact_page_url 
+					found_contact.COMMON_STRING = common_like.group(0) 
+					list_contact_user.append(found_contact)	
+					id_cnt += 1
 
-	for member in member_content:
-		member_id = re.search( r'http://www.douban.com/group/people/(.*)/',member)
-		member_page = 'http://www.douban.com/people/' + member_id.group(1) + '/'
-		member_buffer = douban_opener.open(member_page).read()
-		
-		common_like_num = re.search(r'我和.*共同的喜好\((.*)\)', member_buffer)
-		if common_like_num:
-			 print common_like_num.group(1)
+		page_cnt += 1
+
+	if id_cnt != 0:
+		return SUCCESS_RETURN
+	else:
+		return ERROR_RETURN
 	
 
+def sortsave_result():
+	global list_contact_user	
+	list_contact_user.sort(key = lambda user_info:user_info.COMMON_RESULT,reverse = True)
+	contact_list = open("contact_list.txt","w")
+	for user in list_contact_user:
+		contact_list.write( user.COMMON_STRING + "\n" )
+	contact_list.close()
+	return SUCCESS_RETURN 
+	
 
 def main():
-	print "Start to seek your friends!"
+	print ("Start to count your common-like number with your friends!")
 	if( login_douban() == ERROR_RETURN):
-		print "Login Failed! exit program"
+		print ("Login Failed! exit program")
 		return ERROR_RETURN
 	else:
-		print "Login Success!"
-		if (open_group() == ERROR_RETURN):
-			print "Open group failed, exit program"
+		print ("Login Success!")
+		if (open_contact() == ERROR_RETURN):
+			print ("Open friend list failed, exit program")
 			return ERROR_RETURN
 		else:
-			print "Start seek from the group..."
-			seek_group()
+			if(seek_contact() == ERROR_RETURN):
+				print ("Cannot find common-like with you friends, exit program")
+				return ERROR_RETURN
+			else:
+				if( sortsave_result() == SUCCESS_RETURN):
+					print ("Count complete, please check <contact_list.txt<> at local directory")
+					return SUCCESS_RETURN
+				else:
+					print ("Save result failed, exit program")
+					return ERROR_RETURN
 
-main()
+if __name__ == "__main__":
+	main()
 
