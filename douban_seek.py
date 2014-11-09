@@ -137,7 +137,9 @@ def seek_contact():
 				common_like = re.search(r'我和.*共同的喜好\((\d*)\)', contact_buffer)
 			
 				if common_like:
-					print (common_like.group(0))
+					#print (common_like.group(0))
+					temp_str = (common_like.group(0)).decode('utf-8').encode('gb18030')
+					print (temp_str)
 					found_contact = user_info()
 					found_contact.USER_ID = id_cnt
 					found_contact.COMMON_RESULT = int(common_like.group(1))	
